@@ -1,10 +1,14 @@
+
+
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters, CallbackContext
 import random
 import time
+import os
 
 # Replace 'YOUR_TOKEN' with your actual bot token
-TOKEN = '7445279785:AAFVAkoKeqhUlAuRuVu1I7xBNDtkgg41Mgg'
+TOKEN = os.getenv('TOKEN')
 
 def start(update: Update, context: CallbackContext) -> None:
     username = update.message.from_user.username
