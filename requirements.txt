@@ -1,5 +1,4 @@
-telegram
-telegram.ext
+python-telegram-bot==13.12  # or the latest version compatible with your code
 random
 time
 os
