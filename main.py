@@ -1,77 +1,65 @@
-
-
-
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters, CallbackContext
+import os
 import random
 import time
-import os
+from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# Replace 'YOUR_TOKEN' with your actual bot token
-TOKEN = os.getenv('TOKEN')
+# Environment variables
+API_ID = os.getenv('API_ID')
+API_HASH = os.getenv('API_HASH')
+BOT_TOKEN = os.getenv('BOT_TOKEN')
 
-def start(update: Update, context: CallbackContext) -> None:
-    username = update.message.from_user.username
+# Initialize the bot
+app = Client("my_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
+@app.on_message(filters.command("start"))
+async def start(client, message):
+    username = message.from_user.username
     reply_text = f"Hello {username}, I am a Toolkit for Telegram. What can I do for you?"
-    keyboard = [[InlineKeyboardButton("Insta Hack", callback_data='insta_hack')]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text(reply_text, reply_markup=reply_markup)
-
-def button(update: Update, context: CallbackContext) -> None:
-    query = update.callback_query
-    query.answer()
-
-    if query.data == 'insta_hack':
-        query.edit_message_text(text="Please enter the Instagram username:")
-        context.user_data['next'] = 'ask_action'
-
-def message_handler(update: Update, context: CallbackContext) -> None:
-    if 'next' in context.user_data and context.user_data['next'] == 'ask_action':
-        insta_username = update.message.text
-        context.user_data['insta_username'] = insta_username
-        reply_text = f"What can I do with this username {insta_username}?"
-        keyboard = [
-            [InlineKeyboardButton("Hack", callback_data='hack')],
-            [InlineKeyboardButton("Phone Number", callback_data='phone_number')],
-            [InlineKeyboardButton("Go to Page", callback_data='goto_page')]
+    keyboard = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Insta Hack", callback_data='insta_hack')]
         ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        update.message.reply_text(reply_text, reply_markup=reply_markup)
-        context.user_data['next'] = None
+    )
+    await message.reply(reply_text, reply_markup=keyboard)
 
-def process_action(update: Update, context: CallbackContext) -> None:
-    query = update.callback_query
-    query.answer()
-    insta_username = context.user_data.get('insta_username', 'unknown')
+@app.on_callback_query(filters.regex('insta_hack'))
+async def insta_hack(client, callback_query):
+    await callback_query.message.edit("Please enter the Instagram username:")
+    app.set_parse_mode("username", True)
 
-    if query.data == 'hack':
-        query.edit_message_text(text="Processing hack...")
+@app.on_message(filters.text & filters.private & filters.create(lambda _, __, msg: msg.parse_mode == "username"))
+async def ask_action(client, message):
+    insta_username = message.text
+    message.parse_mode = None  # Reset the parse mode
+    reply_text = f"What can I do with this username {insta_username}?"
+    keyboard = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Hack", callback_data=f'hack:{insta_username}')],
+            [InlineKeyboardButton("Phone Number", callback_data=f'phone_number:{insta_username}')],
+            [InlineKeyboardButton("Go to Page", callback_data=f'goto_page:{insta_username}')]
+        ]
+    )
+    await message.reply(reply_text, reply_markup=keyboard)
+
+@app.on_callback_query(filters.regex(r'^(hack|phone_number|goto_page):'))
+async def process_action(client, callback_query):
+    action, insta_username = callback_query.data.split(":")
+    
+    if action == "hack":
+        await callback_query.message.edit("Processing hack...")
         time.sleep(2)  # Simulate a delay for processing
         random_password = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz1234567890', k=8))
-        query.edit_message_text(text=f"Hacked Insta successfully!\nUsername: {insta_username}\nPassword: {random_password}")
+        await callback_query.message.edit(f"Hacked Insta successfully!\nUsername: {insta_username}\nPassword: {random_password}")
 
-    elif query.data == 'phone_number':
-        query.edit_message_text(text="Fetching phone number...")
+    elif action == "phone_number":
+        await callback_query.message.edit("Fetching phone number...")
         time.sleep(2)  # Simulate a delay for processing
         random_phone_number = '+91' + ''.join(random.choices('1234567890', k=10))
-        query.edit_message_text(text=f"Phone Number: {random_phone_number}")
+        await callback_query.message.edit(f"Phone Number: {random_phone_number}")
 
-    elif query.data == 'goto_page':
-        query.edit_message_text(text=f"Go to Instagram page: https://instagram.com/{insta_username}")
-
-def main() -> None:
-    updater = Updater(TOKEN)
-
-    dispatcher = updater.dispatcher
-
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CallbackQueryHandler(button, pattern='^insta_hack$'))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, message_handler))
-    dispatcher.add_handler(CallbackQueryHandler(process_action, pattern='^(hack|phone_number|goto_page)$'))
-
-    updater.start_polling()
-
-    updater.idle()
+    elif action == "goto_page":
+        await callback_query.message.edit(f"Go to Instagram page: https://instagram.com/{insta_username}")
 
 if __name__ == '__main__':
-    main()
+    app.run()
