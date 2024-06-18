@@ -1,1 +1,2 @@
-python-telegram-bot==13.12  # or the latest version compatible with your code
+pyrogram==2.0.106
+tgcrypto==1.2.3
