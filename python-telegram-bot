@@ -4,7 +4,7 @@ import random
 import time
 
 # Replace 'YOUR_TOKEN' with your actual bot token
-TOKEN = 'YOUR_TOKEN'
+TOKEN = '7445279785:AAFVAkoKeqhUlAuRuVu1I7xBNDtkgg41Mgg'
 
 def start(update: Update, context: CallbackContext) -> None:
     username = update.message.from_user.username
